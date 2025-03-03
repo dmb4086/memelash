@@ -12,10 +12,10 @@ const Logo: React.FC<LogoProps> = ({
 	animated = true,
 }) => {
 	const sizeClasses = {
-		sm: 'text-2xl',
-		md: 'text-3xl',
-		lg: 'text-4xl',
-		xl: 'text-5xl',
+		sm: 'text-3xl',
+		md: 'text-4xl',
+		lg: 'text-5xl',
+		xl: 'text-6xl',
 	};
 
 	return (
@@ -26,26 +26,26 @@ const Logo: React.FC<LogoProps> = ({
 					font-game 
 					${sizeClasses[size]} 
 					tracking-wider
-					${animated ? 'transform transition-all duration-300' : ''}
+					${animated ? 'transform transition-all duration-300 hover:scale-105' : ''}
 					relative
-					py-2
+					py-3
 				`}
 			>
-				<div className="relative inline-flex items-baseline gap-[1px]">
+				<div className="relative inline-flex items-baseline gap-[2px]">
 					<span
-						className="text-game-primary"
+						className="text-game-primary transform hover:-rotate-2 transition-transform duration-300"
 						style={{
-							textShadow: '2px 2px 0px rgba(0,0,0,0.1)',
-							filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
+							textShadow: '3px 3px 0px rgba(0,0,0,0.15)',
+							filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))',
 						}}
 					>
 						MEME
 					</span>
 					<span
-						className="text-game-accent"
+						className="text-game-accent transform hover:rotate-2 transition-transform duration-300"
 						style={{
-							textShadow: '2px 2px 0px rgba(0,0,0,0.1)',
-							filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
+							textShadow: '3px 3px 0px rgba(0,0,0,0.15)',
+							filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))',
 						}}
 					>
 						LASH
@@ -56,10 +56,11 @@ const Logo: React.FC<LogoProps> = ({
 							${animated ? 'animate-bounce' : ''} 
 							inline-block
 							ml-1
+							transform hover:rotate-12 transition-transform duration-300
 						`}
 						style={{
-							textShadow: '2px 2px 0px rgba(0,0,0,0.1)',
-							filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))',
+							textShadow: '3px 3px 0px rgba(0,0,0,0.15)',
+							filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))',
 						}}
 					>
 						!
@@ -67,7 +68,7 @@ const Logo: React.FC<LogoProps> = ({
 				</div>
 				{animated && (
 					<div
-						className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shine"
+						className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shine pointer-events-none"
 						style={{
 							maskImage:
 								'linear-gradient(to right, transparent, white, transparent)',

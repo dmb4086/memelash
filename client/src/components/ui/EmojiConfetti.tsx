@@ -10,6 +10,9 @@ interface EmojiPiece {
 	emoji: string;
 	opacity: number;
 	xSpeed: number;
+	swayAmount: number;
+	swaySpeed: number;
+	swayOffset: number;
 }
 
 interface EmojiConfettiProps {
@@ -24,13 +27,14 @@ const EmojiConfetti: React.FC<EmojiConfettiProps> = ({
 	emoji,
 	count = 30,
 	active = true,
-	duration = 3000,
+	duration = 5000,
 	playSound = true,
 }) => {
 	const [pieces, setPieces] = useState<EmojiPiece[]>([]);
 	const [shouldRender, setShouldRender] = useState(active);
 	const [isExiting, setIsExiting] = useState(false);
 	const audioRef = useRef<HTMLAudioElement | null>(null);
+	const animationTimeRef = useRef(0);
 
 	// Pre-load audio
 	useEffect(() => {
@@ -51,13 +55,16 @@ const EmojiConfetti: React.FC<EmojiConfettiProps> = ({
 		(index: number): EmojiPiece => ({
 			id: index,
 			x: Math.random() * 100,
-			y: -10 - Math.random() * 20,
-			size: 15 + Math.random() * 15,
+			y: -20 - Math.random() * 30,
+			size: 15 + Math.random() * 20,
 			rotation: Math.random() * 360,
-			speed: 2 + Math.random() * 2,
+			speed: 0.3 + Math.random() * 0.5,
 			emoji: emoji,
 			opacity: 1,
-			xSpeed: (Math.random() - 0.5) * 2,
+			xSpeed: (Math.random() - 0.5) * 0.3,
+			swayAmount: 1 + Math.random() * 2,
+			swaySpeed: 0.5 + Math.random() * 1,
+			swayOffset: Math.random() * Math.PI * 2,
 		}),
 		[emoji]
 	);
@@ -66,6 +73,7 @@ const EmojiConfetti: React.FC<EmojiConfettiProps> = ({
 		if (active) {
 			setIsExiting(false);
 			setShouldRender(true);
+			animationTimeRef.current = 0;
 
 			// Play sound
 			if (playSound && audioRef.current) {
@@ -89,19 +97,26 @@ const EmojiConfetti: React.FC<EmojiConfettiProps> = ({
 			const animate = (currentTime: number) => {
 				const deltaTime = (currentTime - lastTime) / 16;
 				lastTime = currentTime;
+				animationTimeRef.current += deltaTime;
 
 				setPieces((prevPieces) =>
 					prevPieces
 						.map((piece) => {
-							const gravity = isExiting ? 0.3 : 0.2;
-							const newSpeed = piece.speed + gravity * deltaTime;
-							const newY = piece.y + newSpeed * deltaTime;
-							const newX = piece.x + piece.xSpeed * deltaTime;
-
+							const gravity = isExiting ? 0.05 : 0.03;
+							const newSpeed = piece.speed + gravity * deltaTime * 0.2;
+							const newY = piece.y + newSpeed * deltaTime * 0.5;
+							const swayFactor =
+								Math.sin(
+									animationTimeRef.current * piece.swaySpeed + piece.swayOffset
+								) * piece.swayAmount;
+							const newX =
+								piece.x + piece.xSpeed * deltaTime * 0.3 + swayFactor * 0.02;
 							const newOpacity =
-								newY > 80 ? Math.max(0, 1 - (newY - 80) / 40) : 1;
+								newY > 70 ? Math.max(0, 1 - (newY - 70) / 100) : 1;
+							const newRotation =
+								piece.rotation + piece.speed * 0.1 * deltaTime;
 
-							if (!isExiting && newY > 110) {
+							if (!isExiting && newY > 120) {
 								return createPiece(piece.id);
 							}
 
@@ -110,7 +125,7 @@ const EmojiConfetti: React.FC<EmojiConfettiProps> = ({
 								y: newY,
 								x: newX,
 								speed: newSpeed,
-								rotation: piece.rotation + piece.speed * 0.5 * deltaTime,
+								rotation: newRotation,
 								opacity: newOpacity,
 							};
 						})
@@ -130,7 +145,7 @@ const EmojiConfetti: React.FC<EmojiConfettiProps> = ({
 				cancelAnimationFrame(animationId);
 				setPieces([]);
 				setShouldRender(false);
-			}, duration + 4000);
+			}, duration + 10000);
 
 			return () => {
 				cancelAnimationFrame(animationId);
@@ -142,9 +157,9 @@ const EmojiConfetti: React.FC<EmojiConfettiProps> = ({
 			setTimeout(() => {
 				setPieces([]);
 				setShouldRender(false);
-			}, 4000);
+			}, 10000);
 		}
-	}, [active, count, createPiece, duration, playSound, isExiting]);
+	}, [active, count, createPiece, duration, playSound]);
 
 	if (!shouldRender) return null;
 
@@ -160,7 +175,8 @@ const EmojiConfetti: React.FC<EmojiConfettiProps> = ({
 						transform: `rotate(${piece.rotation}deg)`,
 						fontSize: `${piece.size}px`,
 						opacity: piece.opacity,
-						transition: 'opacity 0.3s ease-out',
+						transition: 'opacity 1s ease-out, transform 0.5s ease-out',
+						filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))',
 					}}
 				>
 					{piece.emoji}

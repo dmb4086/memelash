@@ -23,6 +23,49 @@ export interface GameRoom {
 // In-memory storage for rooms
 const rooms: Record<string, GameRoom> = {};
 
+// Add at the top of the file
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+// Modified log formatter
+const formatLog = (logData: Record<string, unknown>) => {
+	return isDevelopment
+		? JSON.stringify(logData, null, 2) // Pretty print for dev
+		: JSON.stringify(logData); // Compact for production
+};
+
+// Add this above the setInterval block
+const getOperationalMetrics = () => {
+	const memoryUsage = process.memoryUsage();
+	return {
+		memory: {
+			rss: memoryUsage.rss / 1024 / 1024, // MB
+			heapTotal: memoryUsage.heapTotal / 1024 / 1024,
+			heapUsed: memoryUsage.heapUsed / 1024 / 1024,
+			external: memoryUsage.external / 1024 / 1024,
+		},
+		rooms: Object.keys(rooms).length,
+		totalPlayers: Object.values(rooms).reduce(
+			(acc, room) => acc + room.players.length,
+			0
+		),
+		uptime: process.uptime(),
+	};
+};
+
+// Add this periodic logging
+setInterval(() => {
+	const metrics = getOperationalMetrics();
+	console.log(
+		formatLog({
+			severity: 'INFO',
+			timestamp: new Date().toISOString(),
+			service: 'room-manager',
+			type: 'ops_metrics',
+			...metrics,
+		})
+	);
+}, 30000); // Every 30 seconds
+
 // Generate a unique room code (4 characters, alphanumeric)
 const generateRoomCode = (): string => {
 	const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed similar looking characters
@@ -41,12 +84,45 @@ const generateRoomCode = (): string => {
 // Initialize socket handlers
 export const initializeRoomManager = (io: Server) => {
 	io.on('connection', (socket: Socket) => {
-		console.log(`User connected: ${socket.id}`);
+		const connectionMetrics = {
+			socketId: socket.id,
+			...getOperationalMetrics(),
+		};
+
+		console.log(
+			formatLog({
+				severity: 'INFO',
+				timestamp: new Date().toISOString(),
+				service: 'room-manager',
+				type: 'socket_connected',
+				...connectionMetrics,
+			})
+		);
 
 		// Create a new game room
 		socket.on('create_room', ({ playerName, emoji, maxPlayers = 8 }) => {
+			const logPayload = {
+				type: 'room_create',
+				socketId: socket.id,
+				playerName,
+				initialEmoji: emoji,
+				maxPlayers,
+				metrics: getOperationalMetrics(),
+			};
+
 			console.log(
-				`Received create_room event from ${socket.id} for player ${playerName} with emoji ${emoji}`
+				formatLog({
+					severity: 'INFO',
+					timestamp: new Date().toISOString(),
+					service: 'room-manager',
+					...logPayload,
+				})
+			);
+
+			console.log(
+				`[CREATE] ${socket.id} | Name:${playerName} | Emoji:${
+					emoji || 'none'
+				} | Max:${maxPlayers}`
 			);
 			try {
 				const roomCode = generateRoomCode();
@@ -88,6 +164,27 @@ export const initializeRoomManager = (io: Server) => {
 				console.log(`Emitted room_created event to ${socket.id}`);
 
 				console.log(`Room created: ${roomCode} by ${playerName}`);
+
+				// After room creation
+				const postCreateMetrics = {
+					roomCode,
+					newRoomState: {
+						players: 1,
+						maxPlayers,
+						hostId: socket.id,
+					},
+					metrics: getOperationalMetrics(),
+				};
+
+				console.log(
+					formatLog({
+						severity: 'INFO',
+						timestamp: new Date().toISOString(),
+						service: 'room-manager',
+						type: 'room_created',
+						...postCreateMetrics,
+					})
+				);
 			} catch (error) {
 				console.error('Error creating room:', error);
 				socket.emit('error', { message: 'Failed to create room' });
@@ -97,6 +194,9 @@ export const initializeRoomManager = (io: Server) => {
 		// Join an existing game room
 		socket.on('join_room', ({ roomCode, playerName, emoji }) => {
 			try {
+				console.log(
+					`[JOIN] ${socket.id} | Attempting ${roomCode} as "${playerName}" (${emoji})`
+				);
 				const room = rooms[roomCode];
 
 				// Enhanced validation
@@ -139,15 +239,20 @@ export const initializeRoomManager = (io: Server) => {
 				socket.join(roomCode);
 
 				// Log all players in the room for debugging
-				console.log(`Player ${playerName} joined room ${roomCode}`);
 				console.log(
-					'All players in room:',
-					room.players.map((p) => ({
-						name: p.name,
-						emoji: p.emoji,
-						isHost: p.isHost,
-						id: p.id.substr(-4), // Show just last 4 chars of ID for privacy
-					}))
+					`[ROOM:${roomCode}] Player joined: ${playerName} (ID:${newPlayer.id.slice(
+						-4
+					)}) Emoji:${emoji}`
+				);
+				console.debug(
+					`[ROOM:${roomCode}] Current players: ${room.players
+						.map(
+							(p) =>
+								`${p.name}[${p.id.slice(-4)}]:${p.emoji}${
+									p.isHost ? '(H)' : ''
+								}`
+						)
+						.join(', ')}`
 				);
 
 				// Emit full room data to all clients with complete emoji list
@@ -219,7 +324,9 @@ export const initializeRoomManager = (io: Server) => {
 		// Update player's spirit animal
 		socket.on('update_spirit_animal', ({ roomCode, playerId, emoji }) => {
 			console.log(
-				`[DEBUG] Spirit animal update for ${playerId} in ${roomCode}`
+				`[EMOJI] ${socket.id} | Room:${roomCode} | Player:${playerId.slice(
+					-4
+				)} | New:${emoji}`
 			);
 
 			if (!roomCode || !rooms[roomCode]) {
@@ -246,7 +353,7 @@ export const initializeRoomManager = (io: Server) => {
 			}
 
 			console.log(
-				`Updating ${player.name}'s spirit animal from ${player.emoji} to ${emoji}`
+				`[ROOM:${roomCode}] Updated ${player.name}'s emoji ${player.emoji}→${emoji}`
 			);
 			player.emoji = emoji;
 
@@ -260,7 +367,27 @@ export const initializeRoomManager = (io: Server) => {
 
 		// Handle disconnections
 		socket.on('disconnect', () => {
-			console.log(`User disconnected: ${socket.id}`);
+			const disconnectMetrics = {
+				type: 'socket_disconnected',
+				socketId: socket.id,
+				rooms: Array.from(socket.rooms),
+				metrics: getOperationalMetrics(),
+			};
+
+			console.log(
+				formatLog({
+					severity: 'INFO',
+					timestamp: new Date().toISOString(),
+					service: 'room-manager',
+					...disconnectMetrics,
+				})
+			);
+
+			console.log(
+				`[DISCONNECT] ${socket.id} | Rooms:${Array.from(socket.rooms).join(
+					','
+				)}`
+			);
 
 			// Find rooms where this socket is a player
 			Object.entries(rooms).forEach(([roomCode, room]) => {
@@ -275,19 +402,43 @@ export const initializeRoomManager = (io: Server) => {
 					room.players.splice(playerIndex, 1);
 
 					if (isHost || room.players.length === 0) {
-						// If host left or room is empty, close the room
+						console.log(
+							`[ROOM:${roomCode}] Closed | Reason:${
+								isHost ? 'Host left' : 'Empty'
+							} | Players:${room.players.length}`
+						);
 						delete rooms[roomCode];
 						io.to(roomCode).emit('room_closed', {
 							message: 'Host left the game',
 						});
 						console.log(`Room ${roomCode} closed: host left or room empty`);
+
+						// Room closure logging
+						const roomClosureLog = (roomCode: string, reason: string) => {
+							const room = rooms[roomCode];
+							const duration = Date.now() - room.createdAt.getTime();
+
+							console.log(
+								formatLog({
+									severity: 'WARNING',
+									timestamp: new Date().toISOString(),
+									service: 'room-manager',
+									type: 'room_closed',
+									roomCode,
+									reason,
+									lifetime: duration,
+									finalPlayers: room.players.length,
+									metrics: getOperationalMetrics(),
+								})
+							);
+						};
 					} else {
 						// Notify remaining players
 						io.to(roomCode).emit('player_left', {
 							players: room.players,
 						});
 						console.log(
-							`Player left room ${roomCode}, ${room.players.length} remaining`
+							`[ROOM:${roomCode}] Player left | Remaining:${room.players.length}`
 						);
 					}
 				}

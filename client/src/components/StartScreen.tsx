@@ -53,6 +53,7 @@ const StartScreen: React.FC = () => {
 	const [playerName, setPlayerName] = useState('');
 	const { state, dispatch } = useGame();
 	const { error, usedEmojis } = state;
+	const [localError, setLocalError] = useState<string | null>(null);
 
 	// Animation effect when component mounts
 	useEffect(() => {
@@ -100,13 +101,11 @@ const StartScreen: React.FC = () => {
 				setLocalUsedEmojis(data.usedEmojis || []);
 				setLocalPlayerName(playerName);
 				setShowPreLobby(true);
+				setLocalError(null);
 			} else {
-				dispatch({
-					type: 'SET_ERROR',
-					payload: 'Room not found. Please check the code and try again.',
-				});
+				setLocalError('Room not found. Please check the code and try again.');
 				setTimeout(() => {
-					dispatch({ type: 'CLEAR_ERROR' });
+					setLocalError(null);
 				}, 3000);
 			}
 		};
@@ -115,7 +114,7 @@ const StartScreen: React.FC = () => {
 		return () => {
 			state.socket?.off('room_checked', handleRoomChecked);
 		};
-	}, [state.socket, localRoomCode, playerName, dispatch]);
+	}, [state.socket, localRoomCode, playerName]);
 
 	const handleJoinWithEmoji = (emoji: string) => {
 		console.log('[StartScreen] Joining with emoji:', emoji);
@@ -326,7 +325,10 @@ const StartScreen: React.FC = () => {
 			{/* Join Room Modal */}
 			<Modal
 				isOpen={showJoinForm}
-				onClose={() => setShowJoinForm(false)}
+				onClose={() => {
+					setShowJoinForm(false);
+					setLocalError(null);
+				}}
 				title="Join a Room"
 			>
 				<div className="space-y-6">
@@ -347,6 +349,12 @@ const StartScreen: React.FC = () => {
 							</span>
 						</label>
 					</div>
+
+					{localError && (
+						<div className="text-red-500 text-sm text-center font-medium">
+							{localError}
+						</div>
+					)}
 
 					<button
 						className="game-button btn-primary w-full"
