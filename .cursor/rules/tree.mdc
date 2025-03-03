@@ -1,0 +1,12 @@
+---
+description: ensures file and repo structure 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+ 
+- always refer to the tree or file structure before adding new files to ensure they go in the right place 
+- you can avoid files like [package-lock.json](mdc:package-lock.json) [package-lock.json](mdc:client/package-lock.json) etc.. 
+  

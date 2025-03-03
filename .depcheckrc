@@ -1,0 +1,21 @@
+{
+	"ignores": [
+		"@types/*",
+		"eslint*",
+		"prettier",
+		"typescript",
+		"ts-node",
+		"nodemon",
+		"jest",
+		"@testing-library/*",
+		"webpack",
+		"babel*"
+	],
+	"ignorePatterns": [
+		"dist",
+		"build",
+		"node_modules",
+		"public"
+	],
+	"skipMissing": false
+}
