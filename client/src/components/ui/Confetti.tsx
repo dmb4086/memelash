@@ -15,12 +15,14 @@ interface ConfettiProps {
 	count?: number;
 	active?: boolean;
 	duration?: number;
+	playSound?: boolean;
 }
 
 const Confetti: React.FC<ConfettiProps> = ({
 	count = 50,
 	active = true,
 	duration = 3000,
+	playSound = true,
 }) => {
 	const [pieces, setPieces] = useState<ConfettiPiece[]>([]);
 	const [shouldRender, setShouldRender] = useState(active);
@@ -35,20 +37,25 @@ const Confetti: React.FC<ConfettiProps> = ({
 	useEffect(() => {
 		if (active) {
 			setShouldRender(true);
-		}
 
-		// Create initial confetti pieces
-		if (active) {
+			// Play confetti sound
+			if (playSound) {
+				const audio = new Audio('/confetti.mp3');
+				audio.volume = 0.3;
+				audio.play().catch((err) => console.log('Audio play failed:', err));
+			}
+
+			// Create initial confetti pieces
 			const initialPieces: ConfettiPiece[] = [];
 			for (let i = 0; i < count; i++) {
 				initialPieces.push({
 					id: i,
-					x: Math.random() * 100, // percentage across screen
-					y: -10 - Math.random() * 100, // start above screen
+					x: Math.random() * 100,
+					y: -10 - Math.random() * 20, // Start closer to top
 					size: 5 + Math.random() * 15,
 					color: colors[Math.floor(Math.random() * colors.length)],
 					rotation: Math.random() * 360,
-					speed: 1 + Math.random() * 3,
+					speed: 0.5 + Math.random() * 1.5, // Slower speed
 					shape: shapes[Math.floor(Math.random() * shapes.length)],
 				});
 			}
@@ -61,7 +68,7 @@ const Confetti: React.FC<ConfettiProps> = ({
 					prevPieces.map((piece) => ({
 						...piece,
 						y: piece.y + piece.speed,
-						rotation: piece.rotation + piece.speed,
+						rotation: piece.rotation + piece.speed * 0.5, // Slower rotation
 						// Reset pieces that fall off screen
 						...(piece.y > 110
 							? {
@@ -94,7 +101,7 @@ const Confetti: React.FC<ConfettiProps> = ({
 				setShouldRender(false);
 			}, 500); // Allow time for exit animations
 		}
-	}, [active, count, colors, shapes, duration]);
+	}, [active, count, colors, shapes, duration, playSound]);
 
 	if (!shouldRender) return null;
 

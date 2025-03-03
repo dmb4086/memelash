@@ -50,9 +50,9 @@ const StartScreen: React.FC = () => {
 	const [showPreLobby, setShowPreLobby] = useState(false);
 	const [validatedRoomCode, setValidatedRoomCode] = useState('');
 	const [isJoining, setIsJoining] = useState(false);
-
+	const [playerName, setPlayerName] = useState('');
 	const { state, dispatch } = useGame();
-	const { playerName, roomCode, error, usedEmojis } = state;
+	const { error, usedEmojis } = state;
 
 	// Animation effect when component mounts
 	useEffect(() => {
@@ -63,11 +63,20 @@ const StartScreen: React.FC = () => {
 		return () => clearTimeout(timer);
 	}, []);
 
-	const handleCreateGame = () => {
+	const handleCreateRoom = () => {
+		console.log('[StartScreen] Creating room with player:', playerName);
 		if (state.socket) {
 			dispatch({
-				type: 'CREATE_ROOM',
-				payload: { playerName },
+				type: 'SET_PLAYER_NAME',
+				payload: playerName,
+			});
+
+			state.socket.emit('create_room', { playerName });
+		} else {
+			console.error('[StartScreen] Socket not connected');
+			dispatch({
+				type: 'SET_ERROR',
+				payload: 'Connection error. Please try again.',
 			});
 		}
 	};
@@ -137,10 +146,7 @@ const StartScreen: React.FC = () => {
 	}, [state.socket]);
 
 	const handlePlayerNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		dispatch({
-			type: 'SET_PLAYER_NAME',
-			payload: e.target.value,
-		});
+		setPlayerName(e.target.value);
 	};
 
 	const handleRoomCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,8 +198,8 @@ const StartScreen: React.FC = () => {
 		setSelectedEmoji(null);
 	};
 
-	if (roomCode) {
-		console.log('Transitioning to GameLobby with roomCode:', roomCode);
+	if (state.roomCode) {
+		console.log('Transitioning to GameLobby with roomCode:', state.roomCode);
 		console.log('Current players in state:', state.players);
 		return <GameLobby />;
 	}
@@ -217,139 +223,107 @@ const StartScreen: React.FC = () => {
 	}
 
 	return (
-		<div className="game-container">
+		<div className="min-h-screen bg-gradient-to-br from-game-dark via-game-neutral to-game-dark flex items-center justify-center p-4">
 			{showConfetti && <Confetti duration={5000} count={100} />}
 
-			<Modal
-				isOpen={showHowToPlay}
-				onClose={() => setShowHowToPlay(false)}
-				title="How to Play MemeLash"
-			>
-				<div className="space-y-6">
-					<p className="text-lg text-gray-700">
-						Get ready for the ultimate meme party game! Combine your wit with
-						iconic memes for endless laughs.
-					</p>
-					<div>
-						<h3 className="text-xl font-bold text-game-primary mb-3">
-							Game Flow
-						</h3>
-						<ol className="list-decimal list-inside space-y-3 text-gray-700">
-							<li className="flex items-center space-x-2">
-								<span>📸</span>
-								<span>Each round reveals a fresh meme canvas</span>
-							</li>
-							<li className="flex items-center space-x-2">
-								<span>✍️</span>
-								<span>Everyone crafts their wittiest caption</span>
-							</li>
-							<li className="flex items-center space-x-2">
-								<span>🎭</span>
-								<span>Captions are revealed anonymously</span>
-							</li>
-							<li className="flex items-center space-x-2">
-								<span>🗳️</span>
-								<span>Vote for the best (not your own!)</span>
-							</li>
-							<li className="flex items-center space-x-2">
-								<span>🏆</span>
-								<span>Earn points and climb to victory</span>
-							</li>
-						</ol>
-					</div>
-					<div>
-						<h3 className="text-xl font-bold text-game-primary mb-3">
-							Pro Tips
-						</h3>
-						<ul className="space-y-2 text-gray-700">
-							<li className="flex items-center space-x-2">
-								<span>💡</span>
-								<span>Think outside the box - unexpected is funny!</span>
-							</li>
-							<li className="flex items-center space-x-2">
-								<span>⚡</span>
-								<span>Timing and context make captions pop</span>
-							</li>
-							<li className="flex items-center space-x-2">
-								<span>🎯</span>
-								<span>Inside jokes can be gold (if everyone gets them)</span>
-							</li>
-							<li className="flex items-center space-x-2">
-								<span>🤝</span>
-								<span>Keep it fun and appropriate for your crew</span>
-							</li>
-						</ul>
-					</div>
-				</div>
-			</Modal>
+			<div className="max-w-md w-full">
+				<div className="bg-white/95 backdrop-blur-lg rounded-3xl shadow-2xl p-8 space-y-8 relative overflow-hidden">
+					{/* Decorative background elements */}
+					<div className="absolute inset-0 bg-gradient-to-br from-transparent via-game-primary/5 to-transparent" />
+					<div className="absolute -inset-1 bg-gradient-to-r from-game-primary/10 via-game-accent/10 to-game-secondary/10 blur-2xl opacity-70" />
 
-			<div
-				className={`game-card transition-all duration-500 ${
-					isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-				}`}
-			>
-				<div className="game-logo mb-6">
-					<Logo size="xl" />
-				</div>
+					{/* Content */}
+					<div className="relative">
+						<Logo size="lg" className="mb-6" />
 
-				<h2 className="text-2xl text-center mb-8 text-game-neutral font-light">
-					Where memes meet wit, and laughter knows no bounds! 🎭
-				</h2>
+						<p className="font-game text-game-neutral text-xl text-center leading-relaxed mb-8">
+							WHERE MEMES MEET
+							<br />
+							WIT, AND LAUGHTER
+							<br />
+							KNOWS NO BOUNDS! 🎭
+						</p>
 
-				{error && (
-					<div className="animate-fade-in bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg mb-6 text-center">
-						{error}
-					</div>
-				)}
+						{error && (
+							<div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-center">
+								{error}
+							</div>
+						)}
 
-				<div className="space-y-8">
-					<div className="space-y-6">
-						<div className="form-control">
-							<label className="label">
-								<span className="label-text text-lg">Your Name</span>
-							</label>
-							<input
-								type="text"
-								placeholder="What shall we call you?"
-								className="input input-bordered w-full text-lg py-4"
-								value={playerName}
-								onChange={handlePlayerNameChange}
-								maxLength={20}
-							/>
+						<div className="space-y-6">
+							<div className="relative">
+								<input
+									type="text"
+									placeholder="What shall we call you?"
+									value={playerName}
+									onChange={handlePlayerNameChange}
+									maxLength={20}
+									className="
+										w-full px-6 py-4 
+										bg-white/50 
+										rounded-xl
+										border-2 border-game-neutral/10
+										text-lg font-body
+										placeholder-game-neutral/50
+										focus:outline-none focus:ring-2 focus:ring-game-primary/50
+										transition-all duration-300
+									"
+								/>
+							</div>
+
+							<div className="grid grid-cols-2 gap-4">
+								<button
+									onClick={handleCreateRoom}
+									disabled={!playerName.trim()}
+									className="
+										px-6 py-4
+										bg-game-primary/90 hover:bg-game-primary
+										text-white font-game
+										rounded-xl
+										transform hover:scale-105 hover:-rotate-1
+										transition-all duration-300
+										shadow-lg hover:shadow-xl
+										disabled:opacity-50 disabled:cursor-not-allowed
+									"
+								>
+									CREATE ROOM
+								</button>
+								<button
+									onClick={handleSwitchToJoinForm}
+									disabled={!playerName.trim()}
+									className="
+										px-6 py-4
+										bg-game-secondary/90 hover:bg-game-secondary
+										text-white font-game
+										rounded-xl
+										transform hover:scale-105 hover:rotate-1
+										transition-all duration-300
+										shadow-lg hover:shadow-xl
+										disabled:opacity-50 disabled:cursor-not-allowed
+									"
+								>
+									JOIN ROOM
+								</button>
+							</div>
 						</div>
 
-						<div className="grid grid-cols-2 gap-4">
-							<button
-								className="game-button btn-primary"
-								onClick={handleCreateGame}
-								disabled={!playerName.trim()}
-							>
-								Create Room
-							</button>
-							<button
-								className="game-button btn-secondary"
-								onClick={() => setShowJoinForm(true)}
-								disabled={!playerName.trim()}
-							>
-								Join Room
-							</button>
-						</div>
-
-						<div className="text-center pt-4">
-							<button
-								className="text-game-secondary hover:underline text-lg group inline-flex items-center"
-								onClick={() => setShowHowToPlay(true)}
-							>
-								<span className="opacity-0 group-hover:opacity-100 mr-1">
-									🎮
-								</span>
-								How to Play
-							</button>
-						</div>
+						<button
+							onClick={() => setShowHowToPlay(true)}
+							className="
+								mt-6 mx-auto block
+								text-game-neutral/70 hover:text-game-neutral
+								font-body text-sm
+								underline decoration-dotted
+								transition-colors duration-300
+							"
+						>
+							How to Play
+						</button>
 					</div>
 				</div>
 			</div>
 
+			{/* Join Room Modal */}
 			<Modal
 				isOpen={showJoinForm}
 				onClose={() => setShowJoinForm(false)}
@@ -388,6 +362,34 @@ const StartScreen: React.FC = () => {
 							'Join Game'
 						)}
 					</button>
+				</div>
+			</Modal>
+
+			{/* How to Play Modal */}
+			<Modal
+				isOpen={showHowToPlay}
+				onClose={() => setShowHowToPlay(false)}
+				title="How to Play MemeLash"
+			>
+				<div className="space-y-4 font-body text-game-neutral">
+					<p>
+						🎮 <strong>Game Flow:</strong>
+					</p>
+					<ul className="list-disc pl-5 space-y-2">
+						<li>Create a room or join an existing one</li>
+						<li>Pick your spirit emoji to represent you</li>
+						<li>Take turns creating hilarious meme combinations</li>
+						<li>Vote for the funniest meme each round</li>
+						<li>Collect points and climb to meme mastery!</li>
+					</ul>
+					<p>
+						✨ <strong>Tips:</strong>
+					</p>
+					<ul className="list-disc pl-5 space-y-2">
+						<li>Be creative with your combinations</li>
+						<li>Think outside the box</li>
+						<li>The funnier, the better!</li>
+					</ul>
 				</div>
 			</Modal>
 

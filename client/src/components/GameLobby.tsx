@@ -115,46 +115,66 @@ const GameLobby: React.FC = () => {
 	useEffect(() => {
 		if (state.socket) {
 			const handlePlayerJoined = (data: { players: any[] }) => {
-				console.log('Player joined event received in GameLobby:', data);
-				// Find the new player by comparing with previous state
-				if (data.players.length > prevPlayersRef.current.length) {
-					const newPlayers = data.players.filter(
-						(player) => !prevPlayersRef.current.some((p) => p.id === player.id)
+				console.log('[GameLobby] Player joined event received:', {
+					newPlayers: data.players,
+					existingPlayers: prevPlayersRef.current,
+					currentPlayer: currentPlayer,
+				});
+
+				// Find the new player by comparing arrays
+				const newPlayer = data.players.find(
+					(player) => !prevPlayersRef.current.some((p) => p.id === player.id)
+				);
+
+				if (newPlayer) {
+					console.log(
+						'[GameLobby] Triggering confetti for new player:',
+						newPlayer
 					);
-
-					if (newPlayers.length > 0) {
-						const newPlayer = newPlayers[0];
-						setConfettiEmoji(newPlayer.emoji || '🎉');
-						setNewPlayerName(newPlayer.name);
-						setShowConfetti(true);
-
-						// Keep confetti visible longer and fade out smoothly
-						setTimeout(() => {
-							setShowConfetti(false);
-						}, 5000);
-					}
+					setConfettiEmoji(newPlayer.emoji || '🎉');
+					setNewPlayerName(newPlayer.name);
+					setShowConfetti(true);
+					setTimeout(() => setShowConfetti(false), 3000);
 				}
 
-				// Update our reference to current players
 				prevPlayersRef.current = [...data.players];
 			};
 
 			state.socket.on('player_joined', handlePlayerJoined);
-			state.socket.on('join_room_success', () => {
-				// Show confetti for the player who just joined
-				setConfettiEmoji('🎉');
-				setShowConfetti(true);
-				setTimeout(() => {
-					setShowConfetti(false);
-				}, 5000);
+
+			// Remove other confetti triggers to avoid duplicates
+			state.socket.on('join_room_success', (data) => {
+				console.log('[GameLobby] Join room success:', {
+					data,
+					currentPlayer,
+					showingConfetti: showConfetti,
+				});
+			});
+
+			state.socket.on('room_joined', (data: { player: any }) => {
+				console.log('[GameLobby] Room joined event:', {
+					player: data.player,
+					currentPlayer,
+					showingConfetti: showConfetti,
+				});
 			});
 
 			return () => {
 				state.socket?.off('player_joined', handlePlayerJoined);
 				state.socket?.off('join_room_success');
+				state.socket?.off('room_joined');
 			};
 		}
-	}, [state.socket]);
+	}, [state.socket, currentPlayer]);
+
+	// Log confetti state changes
+	useEffect(() => {
+		console.log('[GameLobby] Confetti state changed:', {
+			showConfetti,
+			emoji: confettiEmoji,
+			playerName: newPlayerName,
+		});
+	}, [showConfetti, confettiEmoji, newPlayerName]);
 
 	// Log players whenever they change
 	useEffect(() => {
@@ -167,9 +187,10 @@ const GameLobby: React.FC = () => {
 				<>
 					<EmojiConfetti
 						emoji={confettiEmoji}
-						count={50}
-						duration={5000}
+						count={40}
+						duration={3000}
 						active={showConfetti}
+						playSound={true}
 					/>
 					{newPlayerName && (
 						<div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-white bg-opacity-90 rounded-lg px-6 py-3 z-50 text-center shadow-lg animate-fade-in">
@@ -310,8 +331,8 @@ const GameLobby: React.FC = () => {
 										{player.emoji}
 									</div>
 								) : (
-									<div className="w-12 h-12 bg-gradient-to-br from-game-primary to-game-secondary rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md">
-										No Spirit
+									<div className="w-12 h-12 bg-gradient-to-br from-game-primary to-game-secondary rounded-full flex items-center justify-center text-white text-2xl shadow-md animate-pulse">
+										⭐
 									</div>
 								)}
 								<div className="ml-4">
