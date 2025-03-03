@@ -1,8 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Poppins:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Add this if using DaisyUI components */
+@import 'daisyui/dist/full.css';
 
 @layer base {
 	html {
@@ -17,55 +20,6 @@
 }
 
 @layer components {
-	/* DaisyUI component classes */
-	.btn {
-		@apply py-3 px-6 rounded-lg font-bold transition-all duration-200 hover:opacity-90 focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
-	}
-
-	.btn-lg {
-		@apply py-4 px-8 text-lg;
-	}
-
-	.btn-primary {
-		@apply bg-game-primary text-white focus:ring-game-primary;
-	}
-
-	.btn-secondary {
-		@apply bg-game-secondary text-white focus:ring-game-secondary;
-	}
-
-	.btn-accent {
-		@apply bg-game-accent text-game-dark focus:ring-game-accent;
-	}
-
-	.btn-outline {
-		@apply bg-transparent border-2 border-game-primary text-game-primary hover:bg-game-primary hover:text-white;
-	}
-
-	.btn-circle {
-		@apply rounded-full p-2 flex items-center justify-center;
-	}
-
-	.btn-sm {
-		@apply text-sm py-1 px-2;
-	}
-
-	.btn-ghost {
-		@apply bg-transparent hover:bg-gray-100 text-gray-500;
-	}
-
-	.input {
-		@apply py-2 px-4 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-game-primary focus:border-transparent;
-	}
-
-	.input-bordered {
-		@apply border-2 border-gray-300;
-	}
-
-	.input-lg {
-		@apply py-3 px-5 text-lg;
-	}
-
 	/* Game-specific classes */
 	.game-container {
 		@apply min-h-screen bg-gradient-to-br from-game-dark to-game-neutral p-4 flex flex-col items-center justify-center;
@@ -80,11 +34,31 @@
 	}
 
 	.game-button {
-		@apply btn btn-lg w-full mb-4 text-xl uppercase tracking-wider font-game;
+		@apply btn btn-lg w-full mb-4 text-xl uppercase tracking-wider font-game bg-opacity-100;
+	}
+
+	.game-button.btn-primary {
+		@apply bg-game-primary text-white hover:bg-opacity-90;
+	}
+
+	.game-button.btn-secondary {
+		@apply bg-game-secondary text-white hover:bg-opacity-90;
+	}
+
+	.game-button.btn-accent {
+		@apply bg-game-accent text-game-dark hover:bg-opacity-90;
+	}
+
+	.game-button.btn-outline {
+		@apply bg-transparent border-2 border-game-primary text-game-primary hover:bg-game-primary hover:text-white;
+	}
+
+	.game-button:disabled {
+		@apply opacity-50 cursor-not-allowed;
 	}
 
 	.game-input {
-		@apply input input-bordered input-lg w-full mb-4 text-xl;
+		@apply input w-full mb-4 text-xl border border-gray-300 rounded-lg px-4 py-3;
 	}
 
 	.game-logo {

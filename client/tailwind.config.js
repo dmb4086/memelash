@@ -4,7 +4,7 @@ module.exports = {
 	theme: {
 		extend: {
 			fontFamily: {
-				game: ['Bangers', 'cursive'],
+				game: ['Rubik Mono One', 'cursive'],
 				body: ['Poppins', 'sans-serif'],
 			},
 			colors: {
@@ -20,5 +20,22 @@ module.exports = {
 			},
 		},
 	},
-	plugins: [],
+	plugins: [require('daisyui')],
+	daisyui: {
+		themes: [
+			{
+				memelash: {
+					primary: '#FF6B6B',
+					secondary: '#4ECDC4',
+					accent: '#FFE66D',
+					neutral: '#1A535C',
+					'base-100': '#ffffff',
+					info: '#3ABFF8',
+					success: '#36D399',
+					warning: '#FBBD23',
+					error: '#F87272',
+				},
+			},
+		],
+	},
 };

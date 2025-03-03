@@ -2,6 +2,10 @@
 	"ignores": [
 		"@types/*",
 		"eslint*",
+		"tailwindcss",
+		"postcss",
+		"autoprefixer",
+		"daisyui",
 		"prettier",
 		"typescript",
 		"ts-node",

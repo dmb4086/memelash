@@ -23,7 +23,10 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
 				{/* Header */}
 				<div className="flex items-center justify-between p-4 border-b">
 					<h3 className="text-2xl font-game text-game-primary">{title}</h3>
-					<button onClick={onClose} className="btn-circle btn-sm btn-ghost">
+					<button
+						onClick={onClose}
+						className="btn btn-circle btn-sm bg-gray-200 text-gray-700 hover:bg-gray-300 border-none"
+					>
 						✕
 					</button>
 				</div>
@@ -33,7 +36,10 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
 
 				{/* Footer */}
 				<div className="p-4 border-t flex justify-end">
-					<button onClick={onClose} className="btn btn-primary">
+					<button
+						onClick={onClose}
+						className="btn bg-game-primary text-white hover:bg-opacity-90 font-game tracking-wider"
+					>
 						Got it!
 					</button>
 				</div>
